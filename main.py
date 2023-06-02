@@ -49,23 +49,62 @@ def view_entry(conn, *names):
 
 
 def edit_entry(conn, *names):
-    print('Editing entry: ' + return_name(*names))
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT a.street, a.city, a.state, a.zip, p.personID, a.addressID '
+        'FROM Person p '
+        'JOIN PersonAddress pa ON p.personID = pa.personID '
+        'JOIN Address a ON pa.addressID = a.addressID '
+        'WHERE p.firstname = ? '
+        'AND p.lastname = ?',
+        (names[0], names[1])
+    )
+    entry = cur.fetchone()
+
+    if entry is None:
+        print('No entry by that name found.')
+        return
+
+    personID = entry[4]
+    addressID = entry[5]
+
+    print(return_name(*names))
+    print('--------------------')
+    print('Address: {}, {}, {} {}'.format(entry[0], entry[1], entry[2], entry[3]))
+    print('--------------------')
+    print('Choose an option:')
+    print('1. Edit name')
+    print('2. Edit addresses')
+    selection = input('>> ')
+    match selection:
+        case '1':
+            update_name(cur, personID)
+        case '2':
+            print('Address chosen')
+        case _:
+            print('Invalid selection')
+
+
+def update_name(cur, personID):
+    # Catches invalid names
+    name_returned = name_entry(cur)
+    if name_returned:
+        firstname, lastname = name_returned
+    else:
+        return
+
+    # Update entry in Table
+    cur.execute("UPDATE Person SET firstname = ?, lastname = ? WHERE personID = ?", (firstname, lastname, personID))
 
 
 def add_entry(conn):
     cur = conn.cursor()
 
-    # Accept input for name
-    firstname = input('First name: ')
-    lastname = input('Last name: ')
-
-    # Constraints
-    if name_exists_in_book(cur, firstname, lastname):
-        print("Can't add duplicate names in address book.")
-        return
-
-    if len(firstname) == 0 or len(lastname) == 0:
-        print("First name and last name required.")
+    # Catches invalid names
+    name_returned = name_entry(cur)
+    if name_returned:
+        firstname, lastname = name_returned
+    else:
         return
 
     # Accept input for address
@@ -86,6 +125,23 @@ def add_entry(conn):
     # Link Person and Address in PersonAddress
     cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (personID, addressID))
     cur.close()
+
+
+def name_entry(cur):
+    # Accept input for name
+    firstname = input('First name: ')
+    lastname = input('Last name: ')
+
+    # Constraints
+    if name_exists_in_book(cur, firstname, lastname):
+        print("Can't add duplicate names in address book.")
+        return
+
+    if len(firstname) == 0 or len(lastname) == 0:
+        print("First name and last name required.")
+        return
+
+    return firstname, lastname
 
 
 def add_person(cur, firstname, lastname):
@@ -136,7 +192,6 @@ def query_address(cur, street, city, state, zip):
         cur.execute(query)
 
 
-
 def convert_null(values):
     for i in range(len(values)):
         if len(values[i]) == 0:
@@ -170,7 +225,7 @@ def main():
     print("Simple Address Book. For commands type 'help'.")
     quit_flag = False
     while not quit_flag:
-        user_input = input('>')
+        user_input = input('> ')
         match user_input.split():
             case ['exit' | 'quit']:
                 quit_flag = True
