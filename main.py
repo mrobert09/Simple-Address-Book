@@ -43,7 +43,7 @@ def view_entry(conn, *names):
 
     print(return_name(*names))
     print('--------------------')
-    print('Address: ' + entry[0] + ', ' + entry[1]+ ', ' + entry[2] + ' ' + entry[3])
+    print('Address: {}, {}, {} {}'.format(entry[0], entry[1], entry[2], entry[3]))
 
     cur.close()
 
@@ -54,14 +54,95 @@ def edit_entry(conn, *names):
 
 def add_entry(conn):
     cur = conn.cursor()
+
+    # Accept input for name
     firstname = input('First name: ')
     lastname = input('Last name: ')
 
+    # Constraints
     if name_exists_in_book(cur, firstname, lastname):
         print("Can't add duplicate names in address book.")
         return
 
-    print('Adding: ' + firstname + ' ' + lastname)
+    if len(firstname) == 0 or len(lastname) == 0:
+        print("First name and last name required.")
+        return
+
+    # Accept input for address
+    street = input('Street address: ')
+    city = input('City: ')
+    state = input('State: ')
+    zip = input('Zip: ')
+
+    # Switch any blank entries to None / NULL values for database
+    street, city, state, zip = convert_null([street, city, state, zip])
+
+    # Add Person row, return ID
+    personID = add_person(cur, firstname, lastname)
+
+    # Add Address row, return ID
+    addressID = add_address(cur, street, city, state, zip)
+
+    # Link Person and Address in PersonAddress
+    cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (personID, addressID))
+    cur.close()
+
+
+def add_person(cur, firstname, lastname):
+    cur.execute("INSERT INTO Person (firstname, lastname) VALUES (?, ?)", (firstname, lastname))
+    cur.execute("SELECT personID FROM Person WHERE firstname = ? AND lastname = ?", (firstname, lastname))
+    return cur.fetchone()[0]
+
+
+def add_address(cur, street, city, state, zip):
+    # Check if address already exists. If it does, return ID of address.
+    query_address(cur, street, city, state, zip)
+    addressID = cur.fetchone()
+    if addressID:
+        return addressID[0]
+
+    # Insert address
+    cur.execute("INSERT INTO Address (street, city, state, zip) VALUES (?, ?, ?, ?)", (street, city, state, zip))
+    return cur.lastrowid
+
+
+def query_address(cur, street, city, state, zip):
+    query = "SELECT * FROM Address WHERE "
+    params = []
+    if street is None:
+        query += "street IS NULL AND "
+    else:
+        query += "street = ? AND "
+        params.append(street)
+    if city is None:
+        query += "city IS NULL AND "
+    else:
+        query += "city = ? AND "
+        params.append(city)
+    if state is None:
+        query += "state IS NULL AND "
+    else:
+        query += "state = ? AND "
+        params.append(state)
+    if zip is None:
+        query += "zip IS NULL"
+    else:
+        query += "zip = ?"
+        params.append(zip)
+
+    if params:
+        cur.execute(query, params)
+    else:
+        cur.execute(query)
+
+
+
+def convert_null(values):
+    for i in range(len(values)):
+        if len(values[i]) == 0:
+            values[i] = None
+
+    return values
 
 
 def return_name(*names):
@@ -89,7 +170,7 @@ def main():
     print("Simple Address Book. For commands type 'help'.")
     quit_flag = False
     while not quit_flag:
-        user_input = input()
+        user_input = input('>')
         match user_input.split():
             case ['exit' | 'quit']:
                 quit_flag = True
