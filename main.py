@@ -1,4 +1,6 @@
 import sqlite3
+from person import *
+from address import *
 
 
 def create_connection(db_file):
@@ -21,6 +23,36 @@ def view_all(conn):
     for row in rows:
         print(row[0] + ' ' + row[1])
 
+    cur.close()
+
+
+def add_entry(conn):
+    cur = conn.cursor()
+
+    # Catches invalid names
+    name_returned = name_entry(cur)
+    if name_returned:
+        firstname, lastname = name_returned
+    else:
+        return
+
+    # Accept input for address
+    street = input('Street address: ')
+    city = input('City: ')
+    state = input('State: ')
+    zipcode = input('Zip: ')
+
+    # Switch any blank entries to None / NULL values for database
+    street, city, state, zipcode = convert_null([street, city, state, zipcode])
+
+    # Add Person row, return ID
+    person_id = add_person(cur, firstname, lastname)
+
+    # Add Address row, return ID
+    address_id = add_address(cur, street, city, state, zipcode)
+
+    # Link Person and Address in PersonAddress
+    cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (person_id, address_id))
     cur.close()
 
 
@@ -96,167 +128,6 @@ def edit_entry(conn, *names):
             print('Invalid selection')
 
     cur.close()
-
-
-def update_name(cur, person_id):
-    # Catches invalid names
-    name_returned = name_entry(cur)
-    if name_returned:
-        firstname, lastname = name_returned
-    else:
-        return
-
-    # Update entry in Table
-    cur.execute("UPDATE Person SET firstname = ?, lastname = ? WHERE personID = ?", (firstname, lastname, person_id))
-
-
-def update_address(cur, person_id):
-    # Accept input for address
-    street = input('Street address: ')
-    city = input('City: ')
-    state = input('State: ')
-    zipcode = input('Zip: ')
-
-    # Switch any blank entries to None / NULL values for database
-    street, city, state, zipcode = convert_null([street, city, state, zipcode])
-
-    # Check if address already exists. If it does, return ID of address.
-    query_address(cur, street, city, state, zipcode)
-    other_address_id = cur.fetchone()
-    if other_address_id:
-        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (other_address_id[0], person_id))
-    else:
-        new_address_id = add_address(cur, street, city, state, zipcode)
-        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (new_address_id, person_id))
-
-
-def delete_name(cur, person_id):
-    print('Delete entry? (Y/N)')
-    selection = input('>> ')
-    if selection.lower() == 'y':
-        cur.execute("DELETE FROM Person WHERE personID = ?", (person_id,))
-
-
-def add_entry(conn):
-    cur = conn.cursor()
-
-    # Catches invalid names
-    name_returned = name_entry(cur)
-    if name_returned:
-        firstname, lastname = name_returned
-    else:
-        return
-
-    # Accept input for address
-    street = input('Street address: ')
-    city = input('City: ')
-    state = input('State: ')
-    zipcode = input('Zip: ')
-
-    # Switch any blank entries to None / NULL values for database
-    street, city, state, zipcode = convert_null([street, city, state, zipcode])
-
-    # Add Person row, return ID
-    person_id = add_person(cur, firstname, lastname)
-
-    # Add Address row, return ID
-    address_id = add_address(cur, street, city, state, zipcode)
-
-    # Link Person and Address in PersonAddress
-    cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (person_id, address_id))
-    cur.close()
-
-
-def name_entry(cur):
-    # Accept input for name
-    firstname = input('First name: ')
-    lastname = input('Last name: ')
-
-    # Constraints
-    if name_exists_in_book(cur, firstname, lastname):
-        print("Can't add duplicate names in address book.")
-        return
-
-    if len(firstname) == 0 or len(lastname) == 0:
-        print("First name and last name required.")
-        return
-
-    return firstname, lastname
-
-
-def add_person(cur, firstname, lastname):
-    cur.execute("INSERT INTO Person (firstname, lastname) VALUES (?, ?)", (firstname, lastname))
-    cur.execute("SELECT personID FROM Person WHERE firstname = ? AND lastname = ?", (firstname, lastname))
-    return cur.fetchone()[0]
-
-
-def add_address(cur, street, city, state, zipcode):
-    # Check if address already exists. If it does, return ID of address.
-    query_address(cur, street, city, state, zipcode)
-    address_id = cur.fetchone()
-    if address_id:
-        return address_id[0]
-
-    # Insert address
-    cur.execute("INSERT INTO Address (street, city, state, zip) VALUES (?, ?, ?, ?)", (street, city, state, zipcode))
-    return cur.lastrowid
-
-
-def query_address(cur, street, city, state, zipcode):
-    query = "SELECT * FROM Address WHERE "
-    params = []
-    if street is None:
-        query += "street IS NULL AND "
-    else:
-        query += "street = ? AND "
-        params.append(street)
-    if city is None:
-        query += "city IS NULL AND "
-    else:
-        query += "city = ? AND "
-        params.append(city)
-    if state is None:
-        query += "state IS NULL AND "
-    else:
-        query += "state = ? AND "
-        params.append(state)
-    if zipcode is None:
-        query += "zip IS NULL"
-    else:
-        query += "zip = ?"
-        params.append(zipcode)
-
-    if params:
-        cur.execute(query, params)
-    else:
-        cur.execute(query)
-
-
-def convert_null(values):
-    for i in range(len(values)):
-        if len(values[i]) == 0:
-            values[i] = None
-
-    return values
-
-
-def return_name(*names):
-    """
-    Simple helper function for returning full name in string format.
-    :param names:
-    :return: string
-    """
-    full_name = ''
-    for name in names:
-        full_name = full_name + name + ' '
-    return full_name.rstrip()
-
-
-def name_exists_in_book(cur, firstname, lastname):
-    cur.execute('SELECT 1 FROM Person WHERE firstname = ? AND lastname = ?', (firstname, lastname))
-    if cur.fetchone():
-        return True
-    return False
 
 
 def view_table(cur, table):
