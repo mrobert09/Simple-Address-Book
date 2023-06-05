@@ -75,14 +75,19 @@ def edit_entry(conn, *names):
     print('Choose an option:')
     print('1. Edit name')
     print('2. Edit addresses')
+    print('3. Delete entry')
     selection = input('>> ')
     match selection:
         case '1':
             update_name(cur, personID)
         case '2':
             print('Address chosen')
+        case '3':
+            delete_name(cur, personID)
         case _:
             print('Invalid selection')
+
+    cur.close()
 
 
 def update_name(cur, personID):
@@ -95,6 +100,10 @@ def update_name(cur, personID):
 
     # Update entry in Table
     cur.execute("UPDATE Person SET firstname = ?, lastname = ? WHERE personID = ?", (firstname, lastname, personID))
+
+
+def delete_name(cur, personID):
+    cur.execute("DELETE FROM Person WHERE personID = ?", (personID,))
 
 
 def add_entry(conn):
@@ -219,8 +228,17 @@ def name_exists_in_book(cur, firstname, lastname):
     return False
 
 
+def view_table(cur):
+    # Mostly used for debugging
+    rows = cur.fetchall()
+    for row in rows:
+        print(row)
+
+
 def main():
     conn = create_connection('addressBook.db')
+    cur = conn.cursor()
+    cur.execute("PRAGMA foreign_keys = ON")
 
     print("Simple Address Book. For commands type 'help'.")
     quit_flag = False
@@ -243,8 +261,19 @@ def main():
                 edit_entry(conn, *names)
             case ['add']:
                 add_entry(conn)
+            case ['viewtable', 'Person']:
+                cur.execute("SELECT * FROM Person")
+                view_table(cur)
+            case ['viewtable', 'PersonAddress']:
+                cur.execute("SELECT * FROM PersonAddress")
+                view_table(cur)
+            case ['viewtable', 'Address']:
+                cur.execute("SELECT * FROM Address")
+                view_table(cur)
             case _:
                 print('Unknown command: ' + user_input)
+        conn.commit()
+    conn.close()
 
 
 if __name__ == '__main__':
