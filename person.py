@@ -16,7 +16,7 @@ def name_entry(cur):
     lastname = input('Last name: ')
 
     # Constraints
-    if name_exists_in_book(cur, firstname, lastname):
+    if return_name_id(cur, firstname, lastname):
         print("Can't add duplicate names in address book.")
         return
 
@@ -27,11 +27,9 @@ def name_entry(cur):
     return firstname, lastname
 
 
-def name_exists_in_book(cur, firstname, lastname):
-    cur.execute('SELECT 1 FROM Person WHERE firstname = ? AND lastname = ?', (firstname, lastname))
-    if cur.fetchone():
-        return True
-    return False
+def return_name_id(cur, firstname, lastname):
+    cur.execute('SELECT personID FROM Person WHERE firstname = ? AND lastname = ?', (firstname, lastname))
+    return cur.fetchone()
 
 
 def delete_name(cur, person_id):

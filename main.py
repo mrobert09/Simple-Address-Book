@@ -1,6 +1,7 @@
 import sqlite3
 from person import *
 from address import *
+from phone import *
 
 
 def create_connection(db_file):
@@ -62,24 +63,19 @@ def view_entry(conn, *names):
         return
 
     cur = conn.cursor()
-    cur.execute(
-        'SELECT a.street, a.city, a.state, a.zip '
-        'FROM Person p '
-        'JOIN PersonAddress pa ON p.personID = pa.personID '
-        'JOIN Address a ON pa.addressID = a.addressID '
-        'WHERE p.firstname = ? '
-        'AND p.lastname = ?',
-        (names[0], names[1])
-    )
-    entry = cur.fetchone()
+    name_id = return_name_id(cur, names[0], names[1])
+    address_info = fetch_address(cur, name_id)
+    phone_info = fetch_numbers(cur, name_id)
 
-    if entry is None:
+    # User didn't exist in system
+    if address_info is None:
         print('No entry by that name found.')
         return
 
     print(return_name(*names))
     print('--------------------')
-    print('Address: {}, {}, {} {}'.format(entry[0], entry[1], entry[2], entry[3]))
+    print_address(address_info)
+    print_phone_numbers(phone_info)
 
     cur.close()
 

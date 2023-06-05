@@ -60,6 +60,23 @@ def query_address(cur, street, city, state, zipcode):
         cur.execute(query)
 
 
+def fetch_address(cur, name_id):
+    cur.execute(
+        'SELECT a.street, a.city, a.state, a.zip '
+        'FROM Person p '
+        'JOIN PersonAddress pa ON p.personID = pa.personID '
+        'JOIN Address a ON pa.addressID = a.addressID '
+        'WHERE p.personID = ?',
+        (name_id)
+    )
+
+    return cur.fetchone()
+
+
+def print_address(info):
+    print('Address: {}, {}, {} {}'.format(info[0], info[1], info[2], info[3]))
+
+
 def convert_null(values):
     for i in range(len(values)):
         if len(values[i]) == 0:
