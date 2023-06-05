@@ -29,7 +29,9 @@ def name_entry(cur):
 
 def return_name_id(cur, firstname, lastname):
     cur.execute('SELECT personID FROM Person WHERE firstname = ? AND lastname = ?', (firstname, lastname))
-    return cur.fetchone()
+    name_id = cur.fetchone()
+    if name_id:
+        return name_id
 
 
 def delete_name(cur, person_id):
@@ -45,7 +47,7 @@ def add_person(cur, firstname, lastname):
     return cur.fetchone()[0]
 
 
-def return_name(*names):
+def full_name_convert(*names):
     """
     Simple helper function for returning full name in string format.
     :param names:
@@ -55,6 +57,13 @@ def return_name(*names):
     for name in names:
         full_name = full_name + name + ' '
     return full_name.rstrip()
+
+
+def return_name(*names):
+    if len(names) < 2:
+        print('No entry by that name found.')
+        return
+    return names[0], names[1]
 
 
 def main():

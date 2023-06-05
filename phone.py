@@ -1,3 +1,7 @@
+def update_number(cur, name_id):
+    return
+
+
 def fetch_numbers(cur, name_id):
     phone_info = []
     cur.execute(

@@ -14,8 +14,7 @@ def create_connection(db_file):
     return conn
 
 
-def view_all(conn):
-    cur = conn.cursor()
+def view_all(cur):
     cur.execute('SELECT firstname, lastname FROM Person')
     rows = cur.fetchall()
 
@@ -24,106 +23,70 @@ def view_all(conn):
     for row in rows:
         print(row[0] + ' ' + row[1])
 
-    cur.close()
+
+def add_entry(cur):
+    first_name, last_name = name_entry(cur)
+    if first_name and last_name:
+        person_id = add_person(cur, first_name, last_name)
+        cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (person_id, 1))
+        edit_entry(cur, first_name, last_name)
 
 
-def add_entry(conn):
-    cur = conn.cursor()
+def view_entry(cur, *names):
+    first_name, last_name = return_name(*names)
+    name_id = return_name_id(cur, first_name, last_name)
 
-    # Catches invalid names
-    name_returned = name_entry(cur)
-    if name_returned:
-        firstname, lastname = name_returned
+    if name_id:
+        address_info = fetch_address(cur, name_id)
+        phone_info = fetch_numbers(cur, name_id)
+
+        # User didn't exist in system
+        if address_info is None:
+            print('No entry by that name found.')
+            return
+
+        print(full_name_convert(*names))
+        print('--------------------')
+        print_address(address_info)
+        print_phone_numbers(phone_info)
+
     else:
-        return
-
-    # Accept input for address
-    street = input('Street address: ')
-    city = input('City: ')
-    state = input('State: ')
-    zipcode = input('Zip: ')
-
-    # Switch any blank entries to None / NULL values for database
-    street, city, state, zipcode = convert_null([street, city, state, zipcode])
-
-    # Add Person row, return ID
-    person_id = add_person(cur, firstname, lastname)
-
-    # Add Address row, return ID
-    address_id = add_address(cur, street, city, state, zipcode)
-
-    # Link Person and Address in PersonAddress
-    cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (person_id, address_id))
-    cur.close()
-
-
-def view_entry(conn, *names):
-    if len(names) < 2:
         print('No entry by that name found.')
-        return
 
-    cur = conn.cursor()
-    name_id = return_name_id(cur, names[0], names[1])
-    address_info = fetch_address(cur, name_id)
-    phone_info = fetch_numbers(cur, name_id)
 
-    # User didn't exist in system
-    if address_info is None:
+def edit_entry(cur, *names):
+    first_name, last_name = return_name(*names)
+    name_id = return_name_id(cur, first_name, last_name)
+
+    if name_id:
+        address_info = fetch_address(cur, name_id)
+        phone_info = fetch_numbers(cur, name_id)
+
+        print(full_name_convert(*names))
+        print('--------------------')
+        print_address(address_info)
+        print_phone_numbers(phone_info)
+        print('--------------------')
+        print('\nChoose an option:')
+        print('1. Edit name')
+        print('2. Add/edit address')
+        print('3. Add/edit phone number(s)')
+        print('4. Delete entry')
+        selection = input('>> ')
+        match selection:
+            case '1':
+                update_name(cur, name_id)
+            case '2':
+                update_address(cur, name_id)
+            case '3':
+                update_number(cur, name_id)
+            case '4':
+                delete_name(cur, name_id)
+            case _:
+                print('Invalid selection')
+
+    else:
         print('No entry by that name found.')
-        return
-
-    print(return_name(*names))
-    print('--------------------')
-    print_address(address_info)
-    print_phone_numbers(phone_info)
-
-    cur.close()
-
-
-def edit_entry(conn, *names):
-    if len(names) < 2:
-        print('No entry by that name found.')
-        return
-
-    cur = conn.cursor()
-    cur.execute(
-        'SELECT a.street, a.city, a.state, a.zip, p.person_id, a.address_id '
-        'FROM Person p '
-        'JOIN PersonAddress pa ON p.person_id = pa.person_id '
-        'JOIN Address a ON pa.address_id = a.address_id '
-        'WHERE p.firstname = ? '
-        'AND p.lastname = ?',
-        (names[0], names[1])
-    )
-    entry = cur.fetchone()
-
-    if entry is None:
-        print('No entry by that name found.')
-        return
-
-    person_id = entry[4]
-    # address_id = entry[5]
-
-    print(return_name(*names))
-    print('--------------------')
-    print('Address: {}, {}, {} {}'.format(entry[0], entry[1], entry[2], entry[3]))
-    print('--------------------')
-    print('\nChoose an option:')
-    print('1. Edit name')
-    print('2. Edit address')
-    print('3. Delete entry')
-    selection = input('>> ')
-    match selection:
-        case '1':
-            update_name(cur, person_id)
-        case '2':
-            update_address(cur, person_id)
-        case '3':
-            delete_name(cur, person_id)
-        case _:
-            print('Invalid selection')
-
-    cur.close()
 
 
 def view_table(cur, table):
@@ -158,18 +121,19 @@ def main():
                 print("'edit <name>' --  Edits address book entry for <name>")
                 print("'add' --  Adds a new entry to the address book.")
             case ['viewall']:
-                view_all(conn)
+                view_all(cur)
             case ['view', *names]:
-                view_entry(conn, *names)
+                view_entry(cur, *names)
             case ['edit', *names]:
-                edit_entry(conn, *names)
+                edit_entry(cur, *names)
             case ['add']:
-                add_entry(conn)
+                add_entry(cur)
             case ['viewtable', table]:
                 view_table(cur, table)
             case _:
                 print('Unknown command: ' + user_input)
         # conn.commit()
+    cur.close()
     conn.close()
 
 
