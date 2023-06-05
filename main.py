@@ -80,16 +80,16 @@ def edit_entry(conn, *names):
     print('--------------------')
     print('Address: {}, {}, {} {}'.format(entry[0], entry[1], entry[2], entry[3]))
     print('--------------------')
-    print('Choose an option:')
+    print('\nChoose an option:')
     print('1. Edit name')
-    print('2. Edit addresses')
+    print('2. Edit address')
     print('3. Delete entry')
     selection = input('>> ')
     match selection:
         case '1':
             update_name(cur, personID)
         case '2':
-            print('Address chosen')
+            update_address(cur, addressID, personID)
         case '3':
             delete_name(cur, personID)
         case _:
@@ -108,6 +108,26 @@ def update_name(cur, personID):
 
     # Update entry in Table
     cur.execute("UPDATE Person SET firstname = ?, lastname = ? WHERE personID = ?", (firstname, lastname, personID))
+
+
+def update_address(cur, addressID, personID):
+    # Accept input for address
+    street = input('Street address: ')
+    city = input('City: ')
+    state = input('State: ')
+    zip = input('Zip: ')
+
+    # Switch any blank entries to None / NULL values for database
+    street, city, state, zip = convert_null([street, city, state, zip])
+
+    # Check if address already exists. If it does, return ID of address.
+    query_address(cur, street, city, state, zip)
+    other_addressID = cur.fetchone()
+    if other_addressID:
+        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (other_addressID[0], personID))
+    else:
+        new_addressID = add_address(cur, street, city, state, zip)
+        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (new_addressID, personID))
 
 
 def delete_name(cur, personID):
