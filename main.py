@@ -25,6 +25,10 @@ def view_all(conn):
 
 
 def view_entry(conn, *names):
+    if len(names) < 2:
+        print('No entry by that name found.')
+        return
+
     cur = conn.cursor()
     cur.execute(
         'SELECT a.street, a.city, a.state, a.zip '
@@ -49,6 +53,10 @@ def view_entry(conn, *names):
 
 
 def edit_entry(conn, *names):
+    if len(names) < 2:
+        print('No entry by that name found.')
+        return
+
     cur = conn.cursor()
     cur.execute(
         'SELECT a.street, a.city, a.state, a.zip, p.personID, a.addressID '
@@ -103,7 +111,10 @@ def update_name(cur, personID):
 
 
 def delete_name(cur, personID):
-    cur.execute("DELETE FROM Person WHERE personID = ?", (personID,))
+    print('Delete entry? (Y/N)')
+    selection = input('>> ')
+    if selection.lower() == 'y':
+        cur.execute("DELETE FROM Person WHERE personID = ?", (personID,))
 
 
 def add_entry(conn):
@@ -228,11 +239,17 @@ def name_exists_in_book(cur, firstname, lastname):
     return False
 
 
-def view_table(cur):
+def view_table(cur, table):
     # Mostly used for debugging
-    rows = cur.fetchall()
-    for row in rows:
-        print(row)
+    table_list = ['Person', 'PersonAddress', 'Address']
+    if table in table_list:
+        search = "SELECT * FROM " + table
+        cur.execute(search)
+        rows = cur.fetchall()
+        for row in rows:
+            print(row)
+    else:
+        print('No such table found.')
 
 
 def main():
@@ -261,18 +278,11 @@ def main():
                 edit_entry(conn, *names)
             case ['add']:
                 add_entry(conn)
-            case ['viewtable', 'Person']:
-                cur.execute("SELECT * FROM Person")
-                view_table(cur)
-            case ['viewtable', 'PersonAddress']:
-                cur.execute("SELECT * FROM PersonAddress")
-                view_table(cur)
-            case ['viewtable', 'Address']:
-                cur.execute("SELECT * FROM Address")
-                view_table(cur)
+            case ['viewtable', table]:
+                view_table(cur, table)
             case _:
                 print('Unknown command: ' + user_input)
-        conn.commit()
+        # conn.commit()
     conn.close()
 
 
