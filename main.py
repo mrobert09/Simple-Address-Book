@@ -59,10 +59,10 @@ def edit_entry(conn, *names):
 
     cur = conn.cursor()
     cur.execute(
-        'SELECT a.street, a.city, a.state, a.zip, p.personID, a.addressID '
+        'SELECT a.street, a.city, a.state, a.zip, p.person_id, a.address_id '
         'FROM Person p '
-        'JOIN PersonAddress pa ON p.personID = pa.personID '
-        'JOIN Address a ON pa.addressID = a.addressID '
+        'JOIN PersonAddress pa ON p.person_id = pa.person_id '
+        'JOIN Address a ON pa.address_id = a.address_id '
         'WHERE p.firstname = ? '
         'AND p.lastname = ?',
         (names[0], names[1])
@@ -73,8 +73,8 @@ def edit_entry(conn, *names):
         print('No entry by that name found.')
         return
 
-    personID = entry[4]
-    addressID = entry[5]
+    person_id = entry[4]
+    # address_id = entry[5]
 
     print(return_name(*names))
     print('--------------------')
@@ -87,18 +87,18 @@ def edit_entry(conn, *names):
     selection = input('>> ')
     match selection:
         case '1':
-            update_name(cur, personID)
+            update_name(cur, person_id)
         case '2':
-            update_address(cur, addressID, personID)
+            update_address(cur, person_id)
         case '3':
-            delete_name(cur, personID)
+            delete_name(cur, person_id)
         case _:
             print('Invalid selection')
 
     cur.close()
 
 
-def update_name(cur, personID):
+def update_name(cur, person_id):
     # Catches invalid names
     name_returned = name_entry(cur)
     if name_returned:
@@ -107,34 +107,34 @@ def update_name(cur, personID):
         return
 
     # Update entry in Table
-    cur.execute("UPDATE Person SET firstname = ?, lastname = ? WHERE personID = ?", (firstname, lastname, personID))
+    cur.execute("UPDATE Person SET firstname = ?, lastname = ? WHERE personID = ?", (firstname, lastname, person_id))
 
 
-def update_address(cur, addressID, personID):
+def update_address(cur, person_id):
     # Accept input for address
     street = input('Street address: ')
     city = input('City: ')
     state = input('State: ')
-    zip = input('Zip: ')
+    zipcode = input('Zip: ')
 
     # Switch any blank entries to None / NULL values for database
-    street, city, state, zip = convert_null([street, city, state, zip])
+    street, city, state, zipcode = convert_null([street, city, state, zipcode])
 
     # Check if address already exists. If it does, return ID of address.
-    query_address(cur, street, city, state, zip)
-    other_addressID = cur.fetchone()
-    if other_addressID:
-        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (other_addressID[0], personID))
+    query_address(cur, street, city, state, zipcode)
+    other_address_id = cur.fetchone()
+    if other_address_id:
+        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (other_address_id[0], person_id))
     else:
-        new_addressID = add_address(cur, street, city, state, zip)
-        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (new_addressID, personID))
+        new_address_id = add_address(cur, street, city, state, zipcode)
+        cur.execute("UPDATE PersonAddress SET addressID = ? WHERE personID = ?", (new_address_id, person_id))
 
 
-def delete_name(cur, personID):
+def delete_name(cur, person_id):
     print('Delete entry? (Y/N)')
     selection = input('>> ')
     if selection.lower() == 'y':
-        cur.execute("DELETE FROM Person WHERE personID = ?", (personID,))
+        cur.execute("DELETE FROM Person WHERE personID = ?", (person_id,))
 
 
 def add_entry(conn):
@@ -151,19 +151,19 @@ def add_entry(conn):
     street = input('Street address: ')
     city = input('City: ')
     state = input('State: ')
-    zip = input('Zip: ')
+    zipcode = input('Zip: ')
 
     # Switch any blank entries to None / NULL values for database
-    street, city, state, zip = convert_null([street, city, state, zip])
+    street, city, state, zipcode = convert_null([street, city, state, zipcode])
 
     # Add Person row, return ID
-    personID = add_person(cur, firstname, lastname)
+    person_id = add_person(cur, firstname, lastname)
 
     # Add Address row, return ID
-    addressID = add_address(cur, street, city, state, zip)
+    address_id = add_address(cur, street, city, state, zipcode)
 
     # Link Person and Address in PersonAddress
-    cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (personID, addressID))
+    cur.execute("INSERT INTO PersonAddress (personID, addressID) VALUES (?, ?)", (person_id, address_id))
     cur.close()
 
 
@@ -190,19 +190,19 @@ def add_person(cur, firstname, lastname):
     return cur.fetchone()[0]
 
 
-def add_address(cur, street, city, state, zip):
+def add_address(cur, street, city, state, zipcode):
     # Check if address already exists. If it does, return ID of address.
-    query_address(cur, street, city, state, zip)
-    addressID = cur.fetchone()
-    if addressID:
-        return addressID[0]
+    query_address(cur, street, city, state, zipcode)
+    address_id = cur.fetchone()
+    if address_id:
+        return address_id[0]
 
     # Insert address
-    cur.execute("INSERT INTO Address (street, city, state, zip) VALUES (?, ?, ?, ?)", (street, city, state, zip))
+    cur.execute("INSERT INTO Address (street, city, state, zip) VALUES (?, ?, ?, ?)", (street, city, state, zipcode))
     return cur.lastrowid
 
 
-def query_address(cur, street, city, state, zip):
+def query_address(cur, street, city, state, zipcode):
     query = "SELECT * FROM Address WHERE "
     params = []
     if street is None:
@@ -220,11 +220,11 @@ def query_address(cur, street, city, state, zip):
     else:
         query += "state = ? AND "
         params.append(state)
-    if zip is None:
+    if zipcode is None:
         query += "zip IS NULL"
     else:
         query += "zip = ?"
-        params.append(zip)
+        params.append(zipcode)
 
     if params:
         cur.execute(query, params)
