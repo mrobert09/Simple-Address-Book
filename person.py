@@ -31,7 +31,7 @@ def return_name_id(cur, firstname, lastname):
     cur.execute('SELECT personID FROM Person WHERE firstname = ? AND lastname = ?', (firstname, lastname))
     name_id = cur.fetchone()
     if name_id:
-        return name_id
+        return name_id[0]
 
 
 def delete_name(cur, person_id):

@@ -9,7 +9,7 @@ def fetch_numbers(cur, name_id):
         'FROM Person p '
         'JOIN Phone ph ON p.personID = ph.personID '
         'WHERE p.personID = ?',
-        (name_id)
+        (str(name_id))
     )
     rows = cur.fetchall()
     for row in rows:

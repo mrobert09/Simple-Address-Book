@@ -33,8 +33,11 @@ def add_entry(cur):
 
 
 def view_entry(cur, *names):
-    first_name, last_name = return_name(*names)
-    name_id = return_name_id(cur, first_name, last_name)
+    name = return_name(*names)
+    if not name:
+        return
+
+    name_id = return_name_id(cur, name[0], name[1])
 
     if name_id:
         address_info = fetch_address(cur, name_id)

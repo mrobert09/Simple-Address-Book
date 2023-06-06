@@ -67,14 +67,22 @@ def fetch_address(cur, name_id):
         'JOIN PersonAddress pa ON p.personID = pa.personID '
         'JOIN Address a ON pa.addressID = a.addressID '
         'WHERE p.personID = ?',
-        (name_id)
+        (str(name_id))
     )
 
     return cur.fetchone()
 
 
 def print_address(info):
-    print('Address: {}, {}, {} {}'.format(info[0], info[1], info[2], info[3]))
+    print('Address:')
+    if info[0]:
+        print('    Street: {}'.format(info[0]))
+    if info[1]:
+        print('    City: {}'.format(info[1]))
+    if info[2]:
+        print('    State: {}'.format(info[2]))
+    if info[3]:
+        print('    Zip: {}'.format(info[3]))
 
 
 def convert_null(values):
