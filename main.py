@@ -52,6 +52,7 @@ def view_entry(cur, *names):
         print('--------------------')
         print_address(address_info)
         print_phone_numbers(phone_info)
+        print()
 
     else:
         print('No entry by that name found.')
