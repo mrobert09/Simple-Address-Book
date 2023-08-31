@@ -1,0 +1,14 @@
+{
+  "name": "Joe Smith",
+  "address": {
+    "Street": "12345 SE Nowhere Ln",
+    "City": null,
+    "State": null,
+    "Zip": null
+  },
+  "phone": {
+    "Home": null,
+    "Mobile": "(987) 654-3210",
+    "Work": null
+  }
+}
