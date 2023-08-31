@@ -59,7 +59,11 @@ def view_entry(cur, *names):
 
 
 def edit_entry(cur, *names):
-    first_name, last_name = return_name(*names)
+    name = return_name(*names)
+    if not name:
+        return
+
+    first_name, last_name = name
     name_id = return_name_id(cur, first_name, last_name)
 
     if name_id:
