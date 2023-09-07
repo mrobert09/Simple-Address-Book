@@ -140,7 +140,7 @@ def main():
                 view_table(cur, table)
             case _:
                 print('Unknown command: ' + user_input)
-        # conn.commit()
+        conn.commit()
     cur.close()
     conn.close()
 
